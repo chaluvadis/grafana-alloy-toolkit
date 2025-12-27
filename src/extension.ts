@@ -63,10 +63,6 @@ function validateAlloyDocument(document: vscode.TextDocument, diagnosticCollecti
         const line = lines[i];
         const lineNumber = i;
 
-        // Check for unmatched braces
-        const openBraces = (line.match(/\{/g) || []).length;
-        const closeBraces = (line.match(/\}/g) || []).length;
-        
         // Check for missing equals in attribute assignment
         const attributePattern = /^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*[^=\s]/;
         if (attributePattern.test(line) && !line.includes('=') && !line.includes('{') && !line.includes('}') && line.trim() !== '' && !line.trim().startsWith('//') && !line.trim().startsWith('/*')) {
@@ -160,7 +156,7 @@ function formatAlloyText(text: string): string {
     const indentString = '\t';
 
     for (let i = 0; i < lines.length; i++) {
-        let line = lines[i].trim();
+        const line = lines[i].trim();
         
         // Skip empty lines (preserve them)
         if (line === '') {

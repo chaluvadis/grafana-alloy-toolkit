@@ -1,0 +1,132 @@
+// Example Grafana Alloy Configuration
+// This file demonstrates various Alloy features
+
+// Global logging configuration
+logging {
+	level = "info"
+	format = "logfmt"
+}
+
+// Prometheus scrape configuration for a sample application
+prometheus.scrape "sample_app" {
+	targets = [
+		{ "__address__" = "localhost:9090", "env" = "dev" },
+		{ "__address__" = "localhost:9091", "env" = "dev" },
+	]
+	forward_to = [prometheus.remote_write.default.receiver]
+	scrape_interval = "15s"
+	scrape_timeout = "10s"
+
+	basic_auth {
+		username = "admin"
+		password = sys.env("PROM_PASSWORD")
+	}
+}
+
+// Prometheus remote write endpoint
+prometheus.remote_write "default" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+		
+		basic_auth {
+			username = "admin"
+			password = sys.env("REMOTE_WRITE_PASSWORD")
+		}
+	}
+}
+
+// Loki log source from files
+loki.source.file "app_logs" {
+	targets = [
+		{ "__path__" = "/var/log/app/*.log", "app" = "myapp" },
+		{ "__path__" = "/var/log/nginx/*.log", "app" = "nginx" },
+	]
+	forward_to = [loki.process.json_parser.receiver]
+}
+
+// Loki process stage for JSON parsing
+loki.process "json_parser" {
+	forward_to = [loki.write.default.receiver]
+	
+	stage.json {
+		expressions = {
+			level = "level",
+			message = "msg",
+		}
+	}
+	
+	stage.labels {
+		values = {
+			level = "level",
+		}
+	}
+}
+
+// Loki write endpoint
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+		
+		basic_auth {
+			username = "admin"
+			password = sys.env("LOKI_PASSWORD")
+		}
+	}
+}
+
+// OpenTelemetry OTLP receiver
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+	
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+	
+	output {
+		metrics = [otelcol.processor.batch.default.input]
+		logs = [otelcol.processor.batch.default.input]
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+// OpenTelemetry batch processor
+otelcol.processor.batch "default" {
+	timeout = "5s"
+	send_batch_size = 8192
+	
+	output {
+		metrics = [otelcol.exporter.otlp.default.input]
+		logs = [otelcol.exporter.otlp.default.input]
+		traces = [otelcol.exporter.otlp.default.input]
+	}
+}
+
+// OpenTelemetry OTLP exporter
+otelcol.exporter.otlp "default" {
+	client {
+		endpoint = "tempo:4317"
+	}
+}
+
+// Kubernetes service discovery
+discovery.kubernetes "pods" {
+	role = "pod"
+}
+
+// Local file reference
+local.file "config" {
+	filename = "/etc/alloy/config.json"
+}
+
+/*
+ * Multi-line comment block
+ * This section could be used for additional configuration
+ */
+
+// Tracing configuration
+tracing {
+	sampling_fraction = 0.1
+	write_to = [otelcol.exporter.otlp.default.input]
+}

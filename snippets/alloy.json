@@ -1,0 +1,200 @@
+{
+  "Prometheus Scrape": {
+    "prefix": "prom-scrape",
+    "body": [
+      "prometheus.scrape \"${1:job_name}\" {",
+      "\ttargets = [",
+      "\t\t{ \"__address__\" = \"${2:localhost:9090}\" },",
+      "\t]",
+      "\tforward_to = [${3:prometheus.remote_write.default.receiver}]",
+      "\tscrape_interval = \"${4:15s}\"",
+      "\tscrape_timeout = \"${5:10s}\"",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Prometheus scrape configuration"
+  },
+  "Prometheus Remote Write": {
+    "prefix": "prom-remote-write",
+    "body": [
+      "prometheus.remote_write \"${1:default}\" {",
+      "\tendpoint {",
+      "\t\turl = \"${2:http://localhost:9090/api/v1/write}\"",
+      "\t\t",
+      "\t\tbasic_auth {",
+      "\t\t\tusername = \"${3:admin}\"",
+      "\t\t\tpassword = sys.env(\"${4:PROM_PASSWORD}\")",
+      "\t\t}",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Prometheus remote write endpoint"
+  },
+  "Loki Write": {
+    "prefix": "loki-write",
+    "body": [
+      "loki.write \"${1:default}\" {",
+      "\tendpoint {",
+      "\t\turl = \"${2:http://localhost:3100/loki/api/v1/push}\"",
+      "\t\t",
+      "\t\tbasic_auth {",
+      "\t\t\tusername = \"${3:admin}\"",
+      "\t\t\tpassword = sys.env(\"${4:LOKI_PASSWORD}\")",
+      "\t\t}",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Loki write endpoint"
+  },
+  "Loki Source File": {
+    "prefix": "loki-source-file",
+    "body": [
+      "loki.source.file \"${1:logs}\" {",
+      "\ttargets = [",
+      "\t\t{ \"__path__\" = \"${2:/var/log/*.log}\" },",
+      "\t]",
+      "\tforward_to = [${3:loki.write.default.receiver}]",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Loki file source"
+  },
+  "Loki Process": {
+    "prefix": "loki-process",
+    "body": [
+      "loki.process \"${1:process}\" {",
+      "\tforward_to = [${2:loki.write.default.receiver}]",
+      "\t",
+      "\tstage.json {",
+      "\t\texpressions = {",
+      "\t\t\t${3:level} = \"${4:level}\",",
+      "\t\t}",
+      "\t}",
+      "\t",
+      "\tstage.labels {",
+      "\t\tvalues = {",
+      "\t\t\t${5:level} = \"${6:level}\",",
+      "\t\t}",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Loki process stage"
+  },
+  "OtelCol Receiver OTLP": {
+    "prefix": "otel-receiver-otlp",
+    "body": [
+      "otelcol.receiver.otlp \"${1:default}\" {",
+      "\tgrpc {",
+      "\t\tendpoint = \"${2:0.0.0.0:4317}\"",
+      "\t}",
+      "\t",
+      "\thttp {",
+      "\t\tendpoint = \"${3:0.0.0.0:4318}\"",
+      "\t}",
+      "\t",
+      "\toutput {",
+      "\t\tmetrics = [${4:otelcol.processor.batch.default.input}]",
+      "\t\tlogs = [${5:otelcol.processor.batch.default.input}]",
+      "\t\ttraces = [${6:otelcol.processor.batch.default.input}]",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create an OpenTelemetry OTLP receiver"
+  },
+  "OtelCol Processor Batch": {
+    "prefix": "otel-processor-batch",
+    "body": [
+      "otelcol.processor.batch \"${1:default}\" {",
+      "\ttimeout = \"${2:5s}\"",
+      "\tsend_batch_size = ${3:8192}",
+      "\t",
+      "\toutput {",
+      "\t\tmetrics = [${4:otelcol.exporter.otlp.default.input}]",
+      "\t\tlogs = [${5:otelcol.exporter.otlp.default.input}]",
+      "\t\ttraces = [${6:otelcol.exporter.otlp.default.input}]",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create an OpenTelemetry batch processor"
+  },
+  "OtelCol Exporter OTLP": {
+    "prefix": "otel-exporter-otlp",
+    "body": [
+      "otelcol.exporter.otlp \"${1:default}\" {",
+      "\tclient {",
+      "\t\tendpoint = \"${2:localhost:4317}\"",
+      "\t\t",
+      "\t\tauth = otelcol.auth.basic.${3:creds}.handler",
+      "\t}",
+      "$0",
+      "}"
+    ],
+    "description": "Create an OpenTelemetry OTLP exporter"
+  },
+  "Discovery Kubernetes": {
+    "prefix": "discovery-kubernetes",
+    "body": [
+      "discovery.kubernetes \"${1:pods}\" {",
+      "\trole = \"${2:pod}\"",
+      "$0",
+      "}"
+    ],
+    "description": "Create a Kubernetes service discovery"
+  },
+  "Local File": {
+    "prefix": "local-file",
+    "body": [
+      "local.file \"${1:config}\" {",
+      "\tfilename = \"${2:/path/to/file}\"",
+      "$0",
+      "}"
+    ],
+    "description": "Create a local file reference"
+  },
+  "Logging": {
+    "prefix": "logging",
+    "body": [
+      "logging {",
+      "\tlevel = \"${1:info}\"",
+      "\tformat = \"${2:logfmt}\"",
+      "$0",
+      "}"
+    ],
+    "description": "Configure logging settings"
+  },
+  "Tracing": {
+    "prefix": "tracing",
+    "body": [
+      "tracing {",
+      "\tsampling_fraction = ${1:0.1}",
+      "\twrite_to = [${2:otelcol.exporter.otlp.default.input}]",
+      "$0",
+      "}"
+    ],
+    "description": "Configure tracing settings"
+  },
+  "Basic Auth": {
+    "prefix": "basic-auth",
+    "body": [
+      "basic_auth {",
+      "\tusername = \"${1:admin}\"",
+      "\tpassword = sys.env(\"${2:PASSWORD}\")",
+      "}"
+    ],
+    "description": "Add basic authentication"
+  },
+  "Comment Block": {
+    "prefix": "comment-block",
+    "body": [
+      "/*",
+      " * ${1:Description}",
+      " */"
+    ],
+    "description": "Create a comment block"
+  }
+}

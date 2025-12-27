@@ -1,0 +1,85 @@
+{
+  "name": "grafana-alloy-toolkit",
+  "displayName": "Grafana Alloy Toolkit",
+  "description": "VSCode extension for Grafana Alloy configuration files with syntax highlighting, validation, formatting, and snippets",
+  "version": "0.1.0",
+  "publisher": "grafana-alloy-toolkit",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chaluvadis/grafana-alloy-toolkit"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters",
+    "Snippets",
+    "Linters"
+  ],
+  "keywords": [
+    "grafana",
+    "alloy",
+    "observability",
+    "telemetry",
+    "configuration"
+  ],
+  "activationEvents": [
+    "onLanguage:alloy"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "alloy",
+        "aliases": [
+          "Alloy",
+          "alloy"
+        ],
+        "extensions": [
+          ".alloy"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/alloy-icon.png",
+          "dark": "./icons/alloy-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "alloy",
+        "scopeName": "source.alloy",
+        "path": "./syntaxes/alloy.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "alloy",
+        "path": "./snippets/alloy.json"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "alloy-file-icons",
+        "label": "Alloy File Icons",
+        "path": "./fileicons/alloy-icon-theme.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  }
+}

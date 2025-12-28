@@ -1,4 +1,9 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+
+// Shared regex patterns
+const BLOCK_PATTERN = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
+const ATTRIBUTE_PATTERN = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
 
 /**
  * Activate the Grafana Alloy Toolkit extension
@@ -42,6 +47,32 @@ export function activate(context: vscode.ExtensionContext) {
             ): vscode.TextEdit[] {
                 return formatAlloyRange(document, range);
             }
+        })
+    );
+
+    // Register documentation generation command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('alloy.generateDocumentation', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('No active editor found');
+                return;
+            }
+            
+            if (editor.document.languageId !== 'alloy') {
+                vscode.window.showErrorMessage('Current file is not an Alloy file');
+                return;
+            }
+
+            const documentation = generateDocumentation(editor.document);
+            
+            // Create a new untitled document with the documentation
+            vscode.workspace.openTextDocument({
+                content: documentation,
+                language: 'markdown'
+            }).then(doc => {
+                vscode.window.showTextDocument(doc);
+            });
         })
     );
 }
@@ -88,19 +119,24 @@ function validateAlloyDocument(document: vscode.TextDocument, diagnosticCollecti
         }
 
         // Check for invalid block names (basic check)
-        const blockPattern = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
-        const blockMatch = line.match(blockPattern);
+        const blockMatch = line.match(BLOCK_PATTERN);
         if (blockMatch) {
             const blockName = blockMatch[1];
+            
             // Warn if block name doesn't follow common patterns
             if (!blockName.includes('.')) {
                 const range = new vscode.Range(lineNumber, 0, lineNumber, line.length);
                 const diagnostic = new vscode.Diagnostic(
                     range,
-                    'Block name should typically include a namespace (e.g., "prometheus.scrape", "loki.write")',
+                    'Block name should typically include a namespace (e.g., "prometheus.scrape", "loki.write", "prometheus.exporter.postgres")',
                     vscode.DiagnosticSeverity.Information
                 );
                 diagnostics.push(diagnostic);
+            }
+            
+            // Validate postgres exporter specific attributes if it's a postgres block
+            if (blockName === 'prometheus.exporter.postgres') {
+                validatePostgresBlock(lines, i, diagnostics);
             }
         }
     }
@@ -199,4 +235,179 @@ function formatAlloyText(text: string): string {
  */
 export function deactivate() {
     console.log('Grafana Alloy Toolkit extension is now deactivated');
+}
+
+/**
+ * Validate a postgres exporter block
+ */
+function validatePostgresBlock(lines: string[], startLine: number, diagnostics: vscode.Diagnostic[]): void {
+    let braceCount = 0;
+    let foundDataSourceNames = false;
+    let inBlock = false;
+    
+    for (let i = startLine; i < lines.length; i++) {
+        const line = lines[i];
+        
+        // Count braces to find the end of the block
+        const openBraces = (line.match(/\{/g) || []).length;
+        const closeBraces = (line.match(/\}/g) || []).length;
+        braceCount += openBraces - closeBraces;
+        
+        if (openBraces > 0) {
+            inBlock = true;
+        }
+        
+        // Check for required data_source_names attribute
+        const attrMatch = line.match(ATTRIBUTE_PATTERN);
+        if (attrMatch && attrMatch[1] === 'data_source_names') {
+            foundDataSourceNames = true;
+        }
+        
+        // Exit when block closes
+        if (inBlock && braceCount === 0) {
+            break;
+        }
+    }
+    
+    // Warn if data_source_names is not found
+    if (!foundDataSourceNames) {
+        const range = new vscode.Range(startLine, 0, startLine, lines[startLine].length);
+        const diagnostic = new vscode.Diagnostic(
+            range,
+            'prometheus.exporter.postgres requires "data_source_names" attribute',
+            vscode.DiagnosticSeverity.Warning
+        );
+        diagnostics.push(diagnostic);
+    }
+}
+
+/**
+ * Generate documentation for an Alloy file
+ */
+function generateDocumentation(document: vscode.TextDocument): string {
+    const text = document.getText();
+    const lines = text.split('\n');
+    // Extract just the filename (without path) for the documentation header
+    const fileName = path.basename(document.fileName);
+    
+    let markdown = `# Alloy Configuration Documentation\n\n`;
+    markdown += `**File:** ${fileName}\n\n`;
+    markdown += `**Generated:** ${new Date().toISOString()}\n\n`;
+    markdown += `---\n\n`;
+    
+    // Parse blocks and components
+    const blocks: Array<{name: string, label: string, line: number, attributes: string[]}> = [];
+    let currentBlock: {name: string, label: string, line: number, attributes: string[]} | null = null;
+    let braceCount = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+        
+        // Skip comments and empty lines
+        if (trimmedLine.startsWith('//') || trimmedLine.startsWith('/*') || trimmedLine === '') {
+            continue;
+        }
+        
+        // Match block definitions
+        const blockMatch = line.match(BLOCK_PATTERN);
+        
+        if (blockMatch) {
+            const blockName = blockMatch[1];
+            const label = blockMatch[2];
+            currentBlock = {name: blockName, label, line: i + 1, attributes: []};
+            braceCount = 1;
+        } else if (currentBlock) {
+            // Count braces
+            const openBraces = (line.match(/\{/g) || []).length;
+            const closeBraces = (line.match(/\}/g) || []).length;
+            braceCount += openBraces - closeBraces;
+            
+            // Extract attributes
+            const attrMatch = trimmedLine.match(ATTRIBUTE_PATTERN);
+            if (attrMatch && !trimmedLine.includes('{')) {
+                currentBlock.attributes.push(attrMatch[1]);
+            }
+            
+            // Block ended
+            if (braceCount === 0) {
+                blocks.push(currentBlock);
+                currentBlock = null;
+            }
+        }
+    }
+    
+    // Generate documentation sections
+    if (blocks.length === 0) {
+        markdown += `## Summary\n\nNo Alloy components found in this file.\n\n`;
+    } else {
+        markdown += `## Summary\n\n`;
+        markdown += `This configuration file contains **${blocks.length}** component(s).\n\n`;
+        
+        // Group by component type
+        type BlockInfo = {name: string, label: string, line: number, attributes: string[]};
+        const groupedBlocks = new Map<string, BlockInfo[]>();
+        for (const block of blocks) {
+            const componentType = block.name.split('.')[0];
+            if (!groupedBlocks.has(componentType)) {
+                groupedBlocks.set(componentType, []);
+            }
+            groupedBlocks.get(componentType)!.push(block);
+        }
+        
+        markdown += `### Component Types\n\n`;
+        for (const [type, typeBlocks] of groupedBlocks) {
+            markdown += `- **${type}**: ${typeBlocks.length} component(s)\n`;
+        }
+        markdown += `\n`;
+        
+        // Detailed component documentation
+        markdown += `## Components\n\n`;
+        
+        for (const block of blocks) {
+            markdown += `### ${block.name} "${block.label}"\n\n`;
+            markdown += `**Line:** ${block.line}\n\n`;
+            
+            // Add component description based on type
+            const description = getComponentDescription(block.name);
+            if (description) {
+                markdown += `**Description:** ${description}\n\n`;
+            }
+            
+            if (block.attributes.length > 0) {
+                markdown += `**Configured Attributes:**\n\n`;
+                for (const attr of block.attributes) {
+                    markdown += `- \`${attr}\`\n`;
+                }
+                markdown += `\n`;
+            } else {
+                markdown += `*No attributes configured.*\n\n`;
+            }
+        }
+    }
+    
+    return markdown;
+}
+
+/**
+ * Get description for a component type
+ */
+function getComponentDescription(componentName: string): string {
+    const descriptions: {[key: string]: string} = {
+        'prometheus.scrape': 'Scrapes Prometheus metrics from targets',
+        'prometheus.remote_write': 'Writes Prometheus metrics to a remote endpoint',
+        'prometheus.exporter.postgres': 'Exports PostgreSQL database metrics for Prometheus',
+        'loki.write': 'Writes logs to a Loki endpoint',
+        'loki.source.file': 'Reads log files from the filesystem',
+        'loki.process': 'Processes and transforms log entries',
+        'otelcol.receiver.otlp': 'Receives OpenTelemetry data via OTLP protocol',
+        'otelcol.processor.batch': 'Batches OpenTelemetry telemetry data',
+        'otelcol.exporter.otlp': 'Exports OpenTelemetry data via OTLP protocol',
+        'discovery.kubernetes': 'Discovers Kubernetes resources for monitoring',
+        'local.file': 'Reads content from a local file',
+        'logging': 'Configures Alloy logging settings',
+        'tracing': 'Configures distributed tracing settings'
+    };
+    
+    return descriptions[componentName] || '';
 }

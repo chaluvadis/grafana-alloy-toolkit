@@ -1,0 +1,28 @@
+// Test file for Postgres validation
+
+// This should trigger a warning - missing data_source_names
+prometheus.exporter.postgres "missing_datasource" {
+	enabled_collectors = ["database", "locks"]
+}
+
+// This should be valid
+prometheus.exporter.postgres "valid_postgres" {
+	data_source_names = [
+		"postgresql://user:password@localhost:5432/postgres?sslmode=disable",
+	]
+	enabled_collectors = ["database", "locks", "replication_slot"]
+	custom_queries_config_path = "/etc/alloy/custom-queries.yaml"
+	disable_default_metrics = false
+}
+
+// Test with autodiscovery
+prometheus.exporter.postgres "with_autodiscovery" {
+	data_source_names = [
+		"postgresql://admin:secret@db.example.com:5432/postgres",
+	]
+	
+	autodiscovery {
+		enabled = true
+		database_allowlist = ["prod_*", "staging_*"]
+	}
+}

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2024-12-28
+
+### Added
+- **Documentation Generation**: New command to automatically generate Markdown documentation from Alloy files
+  - Accessible via context menu and command palette
+  - Generates comprehensive documentation with component summaries
+  - Includes component descriptions, attributes, and line references
+- **PostgreSQL Exporter Support**: Enhanced validation for `prometheus.exporter.postgres` components
+  - Validates required `data_source_names` attribute
+  - Provides helpful warnings for missing configuration
+- **New Snippet**: Added `prom-exporter-postgres` snippet for PostgreSQL exporter configuration
+  - Includes data source names, collector configuration, and custom queries setup
+
+### Changed
+- Updated validation messages to include PostgreSQL exporter examples
+- Enhanced component descriptions in documentation generator
+
+### Fixed
+- Improved file icon configuration for better visibility in VSCode
+
 ## [0.1.0] - 2024-12-27
 
 ### Added
@@ -75,5 +95,6 @@ Potential features for future releases:
 
 ---
 
-[Unreleased]: https://github.com/chaluvadis/grafana-alloy-toolkit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chaluvadis/grafana-alloy-toolkit/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/chaluvadis/grafana-alloy-toolkit/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/chaluvadis/grafana-alloy-toolkit/releases/tag/v0.1.0

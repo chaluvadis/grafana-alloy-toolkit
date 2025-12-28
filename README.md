@@ -21,6 +21,10 @@ A comprehensive Visual Studio Code extension for working with Grafana Alloy conf
   - Unclosed strings
   - Missing equals operators in attribute assignments
   - Invalid block name patterns
+- **PostgreSQL exporter validation**:
+  - Validates `prometheus.exporter.postgres` blocks
+  - Checks for required `data_source_names` attribute
+  - Ensures proper configuration of PostgreSQL exporters
 - Helpful error messages and warnings
 
 ### 🎯 Code Formatting
@@ -33,6 +37,7 @@ A comprehensive Visual Studio Code extension for working with Grafana Alloy conf
 Includes snippets for commonly used Grafana Alloy patterns:
 - `prom-scrape` - Prometheus scrape configuration
 - `prom-remote-write` - Prometheus remote write endpoint
+- `prom-exporter-postgres` - Prometheus PostgreSQL exporter
 - `loki-write` - Loki write endpoint
 - `loki-source-file` - Loki file source
 - `loki-process` - Loki process stage
@@ -48,6 +53,18 @@ Includes snippets for commonly used Grafana Alloy patterns:
 ### 🎨 Custom File Icon
 - Unique file icon for `.alloy` files
 - Easy visual identification in the file explorer
+
+### 📄 Documentation Generation
+- **Generate documentation for Alloy configuration files**
+- Automatically creates Markdown documentation from `.alloy` files
+- Includes:
+  - Component summary and statistics
+  - Detailed component descriptions
+  - Configured attributes for each component
+  - Line number references
+- Access via:
+  - Right-click context menu in Alloy files
+  - Command Palette: "Alloy: Generate Documentation"
 
 ## Installation
 
@@ -83,6 +100,21 @@ Validation happens automatically as you type. Look for:
 - Red underlines for errors
 - Yellow underlines for warnings
 - Blue underlines for informational messages
+
+The extension provides specialized validation for:
+- PostgreSQL exporters (`prometheus.exporter.postgres`)
+- Required attributes and configuration
+
+### Documentation Generation
+1. Open an `.alloy` file
+2. Right-click in the editor and select "Alloy: Generate Documentation"
+   - Or open Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and type "Alloy: Generate Documentation"
+3. A new Markdown document will open with auto-generated documentation
+4. The documentation includes:
+   - File summary with component count
+   - Component type breakdown
+   - Detailed information for each component
+   - Configured attributes and descriptions
 
 ## Example Alloy Configuration
 
@@ -143,11 +175,19 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-- Advanced validation features are limited (basic syntax checking only)
+- Advanced validation features are limited to basic syntax checking and PostgreSQL exporter validation
 - Formatting is opinionated and may not match all style preferences
-- Custom icon theme needs to be manually selected in VSCode settings
+- File icons display in the editor tab but may require the custom icon theme to be manually selected in VSCode settings for file explorer display
 
 ## Release Notes
+
+### 0.1.1 (Latest)
+
+New features and improvements:
+- **PostgreSQL Exporter Validation**: Added validation support for `prometheus.exporter.postgres` components
+- **Documentation Generation**: New command to automatically generate Markdown documentation from Alloy files
+- **PostgreSQL Snippet**: Added `prom-exporter-postgres` snippet for quick PostgreSQL exporter setup
+- Enhanced validation messages with better error descriptions
 
 ### 0.1.0
 

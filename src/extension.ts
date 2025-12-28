@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 // Shared regex patterns
 const BLOCK_PATTERN = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
@@ -256,8 +257,9 @@ function validatePostgresBlock(lines: string[], startLine: number, diagnostics: 
             inBlock = true;
         }
         
-        // Check for required data_source_names attribute (more precise pattern)
-        if (/^\s*data_source_names\s*=/.test(line)) {
+        // Check for required data_source_names attribute
+        const attrMatch = line.match(ATTRIBUTE_PATTERN);
+        if (attrMatch && attrMatch[1] === 'data_source_names') {
             foundDataSourceNames = true;
         }
         
@@ -285,7 +287,7 @@ function validatePostgresBlock(lines: string[], startLine: number, diagnostics: 
 function generateDocumentation(document: vscode.TextDocument): string {
     const text = document.getText();
     const lines = text.split('\n');
-    const fileName = document.fileName.split('/').pop() || 'Unknown';
+    const fileName = path.basename(document.fileName);
     
     let markdown = `# Alloy Configuration Documentation\n\n`;
     markdown += `**File:** ${fileName}\n\n`;

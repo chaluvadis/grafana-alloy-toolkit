@@ -1,10 +1,10 @@
 {
+  "extends": "vs-seti",
   "iconDefinitions": {
     "_alloy_file": {
       "iconPath": "../icons/alloy-icon.png"
     }
   },
-  "file": "_alloy_file",
   "fileExtensions": {
     "alloy": "_alloy_file"
   },

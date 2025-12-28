@@ -2,7 +2,7 @@
   "name": "grafana-alloy-toolkit",
   "displayName": "Grafana Alloy Toolkit",
   "description": "VSCode extension for Grafana Alloy configuration files with syntax highlighting, validation, formatting, and snippets",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "grafana-alloy-toolkit",
   "license": "MIT",
   "icon": "icons/alloy-icon.png",
@@ -75,7 +75,29 @@
         "label": "Alloy File Icons",
         "path": "./fileicons/alloy-icon-theme.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "alloy.generateDocumentation",
+        "title": "Generate Documentation",
+        "category": "Alloy"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == alloy",
+          "command": "alloy.generateDocumentation",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "alloy.generateDocumentation",
+          "when": "resourceLangId == alloy"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

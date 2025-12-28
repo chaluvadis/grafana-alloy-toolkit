@@ -287,6 +287,7 @@ function validatePostgresBlock(lines: string[], startLine: number, diagnostics: 
 function generateDocumentation(document: vscode.TextDocument): string {
     const text = document.getText();
     const lines = text.split('\n');
+    // Extract just the filename (without path) for the documentation header
     const fileName = path.basename(document.fileName);
     
     let markdown = `# Alloy Configuration Documentation\n\n`;
@@ -344,7 +345,8 @@ function generateDocumentation(document: vscode.TextDocument): string {
         markdown += `This configuration file contains **${blocks.length}** component(s).\n\n`;
         
         // Group by component type
-        const groupedBlocks = new Map<string, typeof blocks>();
+        type BlockInfo = {name: string, label: string, line: number, attributes: string[]};
+        const groupedBlocks = new Map<string, BlockInfo[]>();
         for (const block of blocks) {
             const componentType = block.name.split('.')[0];
             if (!groupedBlocks.has(componentType)) {

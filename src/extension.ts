@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
 
+// Shared regex patterns
+const BLOCK_PATTERN = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
+const ATTRIBUTE_PATTERN = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
+
 /**
  * Activate the Grafana Alloy Toolkit extension
  */
@@ -114,8 +118,7 @@ function validateAlloyDocument(document: vscode.TextDocument, diagnosticCollecti
         }
 
         // Check for invalid block names (basic check)
-        const blockPattern = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
-        const blockMatch = line.match(blockPattern);
+        const blockMatch = line.match(BLOCK_PATTERN);
         if (blockMatch) {
             const blockName = blockMatch[1];
             
@@ -253,8 +256,8 @@ function validatePostgresBlock(lines: string[], startLine: number, diagnostics: 
             inBlock = true;
         }
         
-        // Check for required data_source_names attribute
-        if (line.includes('data_source_names')) {
+        // Check for required data_source_names attribute (more precise pattern)
+        if (/^\s*data_source_names\s*=/.test(line)) {
             foundDataSourceNames = true;
         }
         
@@ -304,8 +307,7 @@ function generateDocumentation(document: vscode.TextDocument): string {
         }
         
         // Match block definitions
-        const blockPattern = /^\s*([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\s+"([^"]+)"\s*\{/;
-        const blockMatch = line.match(blockPattern);
+        const blockMatch = line.match(BLOCK_PATTERN);
         
         if (blockMatch) {
             const blockName = blockMatch[1];
@@ -319,8 +321,7 @@ function generateDocumentation(document: vscode.TextDocument): string {
             braceCount += openBraces - closeBraces;
             
             // Extract attributes
-            const attrPattern = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=/;
-            const attrMatch = trimmedLine.match(attrPattern);
+            const attrMatch = trimmedLine.match(ATTRIBUTE_PATTERN);
             if (attrMatch && !trimmedLine.includes('{')) {
                 currentBlock.attributes.push(attrMatch[1]);
             }

@@ -71,7 +71,11 @@ export function activate(context: vscode.ExtensionContext) {
                 content: documentation,
                 language: 'markdown'
             }).then(doc => {
-                vscode.window.showTextDocument(doc);
+                return vscode.window.showTextDocument(doc);
+            }, error => {
+                console.error('Failed to open or display generated documentation.', error);
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage('Failed to open generated documentation: ' + message);
             });
         })
     );
@@ -316,7 +320,10 @@ function generateDocumentation(document: vscode.TextDocument): string {
             const blockName = blockMatch[1];
             const label = blockMatch[2];
             currentBlock = {name: blockName, label, line: i + 1, attributes: []};
-            braceCount = 1;
+            // Count opening braces on this line
+            const openBraces = (line.match(/\{/g) || []).length;
+            const closeBraces = (line.match(/\}/g) || []).length;
+            braceCount = openBraces - closeBraces;
         } else if (currentBlock) {
             // Count braces
             const openBraces = (line.match(/\{/g) || []).length;
@@ -345,8 +352,7 @@ function generateDocumentation(document: vscode.TextDocument): string {
         markdown += `This configuration file contains **${blocks.length}** component(s).\n\n`;
         
         // Group by component type
-        type BlockInfo = {name: string, label: string, line: number, attributes: string[]};
-        const groupedBlocks = new Map<string, BlockInfo[]>();
+        const groupedBlocks = new Map<string, typeof blocks[number][]>();
         for (const block of blocks) {
             const componentType = block.name.split('.')[0];
             if (!groupedBlocks.has(componentType)) {

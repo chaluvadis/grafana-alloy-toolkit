@@ -35,9 +35,9 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// Validate all open documents
-	vscode.workspace.textDocuments.forEach((doc) =>
-		validateAlloyDocument(doc, diagnosticCollection),
-	);
+	vscode.workspace.textDocuments.forEach((doc) => {
+		validateAlloyDocument(doc, diagnosticCollection);
+	});
 
 	// Register document formatter
 	context.subscriptions.push(
